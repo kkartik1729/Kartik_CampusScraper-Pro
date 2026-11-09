@@ -95,6 +95,7 @@ class Fetcher:
         self.client = httpx.Client(
             follow_redirects=True,
             timeout=httpx.Timeout(config.timeout_seconds, connect=15.0),
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=32, keepalive_expiry=30.0),
             headers={
                 "User-Agent": config.user_agent,
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -132,6 +133,8 @@ class Fetcher:
         self.client.close()
         if self._renderer:
             try:
+                from .system_monitor import MONITOR
+                MONITOR.adjust_browsers(-1)
                 self._browser_thread.submit(self._renderer.close).result(timeout=60)
             except Exception as exc:  # noqa: BLE001
                 log.warning("browser close failed: %s", exc)
@@ -188,7 +191,6 @@ class Fetcher:
                 self._robots[origin] = policy
                 return policy
             if _is_dns_failure(str(exc)) and urlsplit(origin).netloc not in self._successful_hosts:
-                self._dead_hosts.add(urlsplit(origin).netloc)
                 self.robots_status[origin] = "hostname does not exist (DNS lookup failed)"
             elif self._browser_ok():
                 # Plain HTTP cannot connect (certificate, proxy or firewall); read it the way Chrome does.
@@ -236,15 +238,21 @@ class Fetcher:
         with self._lock:
             self.requests_made += 1
         from .discovery import directory_form
+        from .system_monitor import MONITOR
         form = directory_form(url)
-        with self.client.stream("POST" if form else "GET", url, **({"data": form} if form else {})) as resp:
-            body = bytearray()
-            for chunk in resp.iter_bytes():
-                body.extend(chunk)
-                if len(body) > self.cfg.max_bytes:
-                    break
-            resp._content = bytes(body)  # noqa: SLF001 - httpx has no public setter
-            return resp
+        try:
+            with self.client.stream("POST" if form else "GET", url, **({"data": form} if form else {})) as resp:
+                body = bytearray()
+                for chunk in resp.iter_bytes():
+                    body.extend(chunk)
+                    if len(body) > self.cfg.max_bytes:
+                        break
+                resp._content = bytes(body)  # noqa: SLF001 - httpx has no public setter
+                MONITOR.record_request(bytes_received=len(body), failed=resp.status_code >= 400)
+                return resp
+        except Exception:
+            MONITOR.record_request(bytes_received=0, failed=True)
+            raise
 
     def get(self, url: str) -> Page:
         """Fetch one page. Never raises for HTTP errors; returns Page.error instead."""
@@ -267,6 +275,9 @@ class Fetcher:
             except httpx.HTTPError as exc:
                 last_error = f"{type(exc).__name__}: {str(exc)[:200]}"
                 if _is_dns_failure(last_error) and host not in self._successful_hosts:
+                    if attempt < self.cfg.retries:
+                        self._sleep(2.0 * (attempt + 1))
+                        continue
                     self._dead_hosts.add(host)
                     return Page(url, url, 0, "", error="hostname does not exist (DNS lookup failed)")
                 if _is_ssl_or_proxy(exc) or self.stop_event.is_set():
@@ -360,6 +371,8 @@ class Fetcher:
                 if self._renderer is None and self._renderer_error is None:
                     try:
                         self._renderer = self._browser_thread.submit(start).result()
+                        from .system_monitor import MONITOR
+                        MONITOR.adjust_browsers(1)
                     except Exception as exc:  # Playwright missing or browser not installed
                         self._renderer_error = str(exc)
                         log.warning("Browser unavailable: %s", exc)

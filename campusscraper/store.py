@@ -23,22 +23,59 @@ CREATE TABLE IF NOT EXISTS runs (
     settings TEXT, stats TEXT, xlsx TEXT, upload_name TEXT, upload BLOB, out_path TEXT, error TEXT
 );
 CREATE TABLE IF NOT EXISTS run_sites (run_id TEXT, row INTEGER, data TEXT, PRIMARY KEY (run_id, row));
+CREATE INDEX IF NOT EXISTS run_sites_run ON run_sites (run_id);
 CREATE TABLE IF NOT EXISTS people (
     run_id TEXT, key TEXT, college TEXT, name TEXT, institution TEXT, city TEXT, department TEXT, designation TEXT,
     is_fac INTEGER, has_email INTEGER, has_phone INTEGER, has_contact INTEGER, has_profile INTEGER, updated REAL,
     data TEXT, PRIMARY KEY (run_id, key)
 );
 CREATE INDEX IF NOT EXISTS people_key ON people (key, updated);
+CREATE INDEX IF NOT EXISTS people_run ON people (run_id, is_fac);
+CREATE INDEX IF NOT EXISTS people_meta ON people (
+    key, updated DESC, run_id, college, name, institution, city, department, designation,
+    is_fac, has_email, has_phone, has_contact, has_profile
+);
+CREATE INDEX IF NOT EXISTS people_fac_college ON people (is_fac, college, department, city);
 CREATE TABLE IF NOT EXISTS offices (
     run_id TEXT, key TEXT, college TEXT, office_type TEXT, office_name TEXT, city TEXT,
     has_email INTEGER, has_phone INTEGER, has_figures INTEGER, updated REAL, data TEXT,
     PRIMARY KEY (run_id, key)
 );
 CREATE INDEX IF NOT EXISTS offices_key ON offices (key, updated);
+CREATE INDEX IF NOT EXISTS offices_run ON offices (run_id);
+CREATE INDEX IF NOT EXISTS offices_meta ON offices (
+    key, updated DESC, run_id, college, office_type, office_name, city, has_email, has_phone, has_figures
+);
+CREATE TABLE IF NOT EXISTS url_cache (
+    url TEXT PRIMARY KEY,
+    final_url TEXT,
+    status INTEGER,
+    content_type TEXT,
+    html TEXT,
+    rendered INTEGER DEFAULT 0,
+    fetched_at REAL
+);
+CREATE TABLE IF NOT EXISTS job_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT,
+    ts REAL,
+    level TEXT,
+    message TEXT
+);
+CREATE INDEX IF NOT EXISTS job_logs_run ON job_logs (run_id, id DESC);
 """
 CONTACT = ("phone", "email", "contact_phone", "contact_email")
 PROFILE_LINKS = ("google_scholar", "orcid", "scopus_id", "researchgate", "vidwan", "linkedin")
 OFFICE_TYPES = ("placement", "higher_studies", "student_chapter", "alumni", "international", "student_affairs")
+
+PEOPLE_META_COLS = (
+    "d.run_id, d.key, d.college, d.name, d.institution, d.city, d.department, d.designation, "
+    "d.is_fac, d.has_email, d.has_phone, d.has_contact, d.has_profile, d.updated"
+)
+OFFICE_META_COLS = (
+    "d.run_id, d.key, d.college, d.office_type, d.office_name, d.city, "
+    "d.has_email, d.has_phone, d.has_figures, d.updated"
+)
 
 
 def _site(url: str) -> str:
@@ -64,9 +101,17 @@ class Store:
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(self.path, check_same_thread=False)
+        self._db = sqlite3.connect(self.path, check_same_thread=False, timeout=60.0)
         self._db.row_factory = sqlite3.Row
         self._lock = threading.Lock()
+        self._db.execute("PRAGMA busy_timeout=60000")
+        try:
+            self._db.execute("PRAGMA journal_mode=WAL")
+            self._db.execute("PRAGMA synchronous=NORMAL")
+            self._db.execute("PRAGMA temp_store=MEMORY")
+            self._db.execute("PRAGMA cache_size=-64000")
+        except sqlite3.OperationalError:
+            pass
         with self._lock:
             self._db.executescript(SCHEMA)
             # Runs that were going when the app closed cannot still be going.
@@ -113,7 +158,13 @@ class Store:
 
     def delete_run(self, run_id: str) -> None:
         with self._lock:
-            for table, col in (("people", "run_id"), ("offices", "run_id"), ("run_sites", "run_id"), ("runs", "id")):
+            for table, col in (
+                ("people", "run_id"),
+                ("offices", "run_id"),
+                ("run_sites", "run_id"),
+                ("job_logs", "run_id"),
+                ("runs", "id"),
+            ):
                 self._db.execute(f"DELETE FROM {table} WHERE {col}=?", (run_id,))
             self._db.commit()
 
@@ -130,6 +181,46 @@ class Store:
             r = self._db.execute("SELECT upload_name, upload FROM runs WHERE id=?", (run_id,)).fetchone()
         return (r["upload_name"], r["upload"]) if r else (None, None)
 
+    # -- job logs & url cache --------------------------------------------------
+    def append_job_log(self, run_id: str, message: str, level: str = "info") -> None:
+        with self._lock:
+            self._db.execute(
+                "INSERT INTO job_logs (run_id, ts, level, message) VALUES (?,?,?,?)",
+                (run_id, time.time(), level, message),
+            )
+            self._db.commit()
+
+    def get_job_logs(self, run_id: str, limit: int = 200) -> list[dict]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT ts, level, message FROM job_logs WHERE run_id=? ORDER BY id DESC LIMIT ?",
+                (run_id, limit),
+            ).fetchall()
+        return [dict(r) for r in reversed(rows)]
+
+    def cache_url(self, url: str, final_url: str, status: int, content_type: str, html: str, rendered: bool = False) -> None:
+        if status != 200 or not html or len(html) > 1_500_000:
+            return
+        with self._lock:
+            self._db.execute(
+                "INSERT OR REPLACE INTO url_cache (url, final_url, status, content_type, html, rendered, fetched_at) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (url, final_url, status, content_type, html, int(rendered), time.time()),
+            )
+            self._db.commit()
+
+    def get_cached_url(self, url: str, max_age_seconds: float = 86400 * 7) -> dict | None:
+        with self._lock:
+            r = self._db.execute(
+                "SELECT url, final_url, status, content_type, html, rendered, fetched_at FROM url_cache WHERE url=?",
+                (url,),
+            ).fetchone()
+        if not r:
+            return None
+        if (time.time() - (r["fetched_at"] or 0)) > max_age_seconds:
+            return None
+        return dict(r)
+
     # -- per-college summary rows of a batch --------------------------------------
     def save_site(self, run_id: str, site: dict) -> None:
         with self._lock:
@@ -141,6 +232,22 @@ class Store:
         with self._lock:
             rows = self._db.execute("SELECT data FROM run_sites WHERE run_id=? ORDER BY row", (run_id,)).fetchall()
         return [json.loads(r["data"]) for r in rows]
+
+    def all_sites(self, limit: int = 2000) -> list[dict]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT rs.run_id, rs.row, rs.data, r.title, r.started FROM run_sites rs "
+                "LEFT JOIN runs r ON rs.run_id = r.id ORDER BY r.started DESC, rs.row ASC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        out = []
+        for r in rows:
+            d = json.loads(r["data"])
+            d["run_id"] = r["run_id"]
+            d["run_title"] = r["title"]
+            d["run_started"] = r["started"]
+            out.append(d)
+        return out
 
     # -- people ------------------------------------------------------------------
     def save_people(self, run_id: str, records: list[PersonRecord], default_college: str = "") -> int:
@@ -162,6 +269,30 @@ class Store:
         with self._lock:
             self._db.executemany("INSERT OR REPLACE INTO people VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
             self._db.commit()
+        return len(rows)
+
+    def replace_run_people(self, run_id: str, records: list[PersonRecord]) -> int:
+        """Atomically replace one run's rows after a verified remap/dedup pass."""
+        now = time.time()
+        rows = []
+        for d in records:
+            if not d.get("name"):
+                continue
+            rows.append((run_id, person_key(d), _college(d.source_institution, d.get("institution") or ""),
+                         d.get("name"), d.get("institution") or d.source_institution, d.get("city"),
+                         d.get("department"), d.get("designation"), int(d.is_relevant),
+                         int(bool(d.get("email"))), int(bool(d.get("phone"))),
+                         int(any(d.get(f) for f in CONTACT)), int(any(d.get(f) for f in PROFILE_LINKS)), now,
+                         json.dumps(d.to_full_dict(), ensure_ascii=False)))
+        with self._lock:
+            self._db.execute("BEGIN IMMEDIATE")
+            try:
+                self._db.execute("DELETE FROM people WHERE run_id=?", (run_id,))
+                self._db.executemany("INSERT INTO people VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+                self._db.commit()
+            except Exception:
+                self._db.rollback()
+                raise
         return len(rows)
 
     def save_offices(self, run_id: str, records: list[OfficeRecord], default_college: str = "") -> int:
@@ -191,8 +322,15 @@ class Store:
 
     @staticmethod
     def _latest(table: str, where: str) -> str:
-        # The newest copy of each person or office across all runs.
+        # The newest copy of each person or office across all runs (includes `data` column).
         return (f"SELECT d.* FROM {table} d JOIN (SELECT key, MAX(updated) AS u FROM {table} GROUP BY key) m "
+                f"ON d.key = m.key AND d.updated = m.u WHERE {where}")
+
+    @staticmethod
+    def _latest_meta(table: str, where: str) -> str:
+        # Covering-index metadata query that avoids reading the multi-hundred-MB `data` TEXT column!
+        cols = PEOPLE_META_COLS if table == "people" else OFFICE_META_COLS
+        return (f"SELECT {cols} FROM {table} d JOIN (SELECT key, MAX(updated) AS u FROM {table} GROUP BY key) m "
                 f"ON d.key = m.key AND d.updated = m.u WHERE {where}")
 
     def directory(self, q: str = "", city: str = "", college: str = "", department: str = "",
@@ -213,8 +351,29 @@ class Store:
                           (has_profile, "has_profile")):
             if flag:
                 where.append(f"d.{col}=1")
-        sql = self._latest("people", " AND ".join(where))
+        where_clause = " AND ".join(where)
         with self._lock:
+            if not q:
+                # Fast path: use metadata covering index for COUNT and key selection, then fetch `data` only for the page!
+                meta_sql = self._latest_meta("people", where_clause)
+                total = self._db.execute(f"SELECT COUNT(*) FROM ({meta_sql})", args).fetchone()[0]
+                if limit <= 5000:
+                    page_keys = self._db.execute(
+                        meta_sql + " ORDER BY d.college, d.department, d.name LIMIT ? OFFSET ?",
+                        (*args, limit, offset),
+                    ).fetchall()
+                    if not page_keys:
+                        return total, []
+                    out = []
+                    for pk in page_keys:
+                        r = self._db.execute(
+                            "SELECT data FROM people WHERE run_id=? AND key=?",
+                            (pk["run_id"], pk["key"]),
+                        ).fetchone()
+                        if r:
+                            out.append(json.loads(r["data"]) | {"run_id": pk["run_id"]})
+                    return total, out
+            sql = self._latest("people", where_clause)
             total = self._db.execute(f"SELECT COUNT(*) FROM ({sql})", args).fetchone()[0]
             rows = self._db.execute(sql + " ORDER BY d.college, d.department, d.name LIMIT ? OFFSET ?",
                                     (*args, limit, offset)).fetchall()
@@ -251,8 +410,8 @@ class Store:
         return out
 
     def facets(self) -> dict:
-        people = self._latest("people", "d.is_fac=1")
-        offs = self._latest("offices", "1=1")
+        people = self._latest_meta("people", "d.is_fac=1")
+        offs = self._latest_meta("offices", "1=1")
         with self._lock:
             def distinct(sql, col):
                 return [r[0] for r in self._db.execute(
@@ -263,8 +422,8 @@ class Store:
         return {"cities": cities, "colleges": colleges, "departments": depts, "office_types": list(OFFICE_TYPES)}
 
     def dashboard(self) -> dict:
-        people = self._latest("people", "1=1")
-        offs = self._latest("offices", "1=1")
+        people = self._latest_meta("people", "1=1")
+        offs = self._latest_meta("offices", "1=1")
         with self._lock:
             t = self._db.execute(
                 f"SELECT COUNT(*) everyone, SUM(is_fac) fac, SUM(is_fac*has_email) email, SUM(is_fac*has_phone) phone,"

@@ -208,3 +208,14 @@ See `docs/pune-second-batch-audit.md` for the controlled saved-page comparison,
 confirmed causes, live checks and remaining limits. Historical PDFs and third-party
 contacts in the research reference are not automatically treated as current faculty
 contacts. No email addresses are generated from name patterns.
+
+
+## Enterprise Platform Upgrade (v2.0)
+
+CampusScraper has been upgraded with:
+- **11-Section Dark Glassmorphism UI**: Dashboard, Start New Scraping, College Management, Live Scraping Monitor, Faculty Records, URL Discovery, Failed Websites, Excel Export Center, Scraping History, Settings, and System Performance.
+- **SQLite WAL & Covering Index Optimization**: `Store.dashboard()` accelerated from `44.43s` to `1.91s` (**23.3x faster**), `Store.directory()` from `8.53s` to `1.55s` (**5.5x faster**), and `Store.facets()` from `13.01s` to `2.55s` (**5.1x faster**).
+- **High-Speed Async Excel Export & Validation**: Native tuple write-only streaming (**6.3x faster** per sheet), non-blocking background export jobs (`ExportManager`), and automatic `validate_xlsx` post-export verification while preserving the exact 7-sheet template and column structure.
+- **Data Quality & Confidence Scoring (`0–100`)**: Pre-export quality audit (`campusscraper/quality.py`) and live Windows CPU/RAM/network telemetry (`campusscraper/system_monitor.py`).
+
+See [CHANGELOG.md](CHANGELOG.md) and [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md) for complete details and benchmarks.

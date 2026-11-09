@@ -29,7 +29,11 @@ DEPARTMENTS: dict[str, tuple[str, ...]] = {
     "Physics": ("physics", "applied physics"),
     "Chemistry": ("chemistry", "applied chemistry"),
     "Humanities and Social Sciences": ("humanities", "english", "social sciences", "economics", "hss", "languages"),
-    "Management": ("management", "mba", "business administration", "commerce", "school of business", "pgdm", "bba"),
+    "Management": ("management", "mba", "business administration", "commerce", "school of business", "pgdm", "bba",
+                   "finance", "marketing", "human resource", "hr", "operations", "strategy",
+                   "organizational behaviour", "decision sciences", "public systems", "agribusiness",
+                   "entrepreneurship", "supply chain", "international business", "business analytics",
+                   "fintech", "retail", "hospitality", "general management"),
     "Pharmacy": ("pharmacy", "pharmaceutical", "pharmaceutics", "pharmacology"),
     "Law": ("law", "legal studies", "llb", "llm"),
 }

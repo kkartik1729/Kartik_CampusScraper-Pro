@@ -131,7 +131,8 @@ $('start').onclick = async () => {
     body = { urls, max_pages: num('max_pages', 'Max pages', 1, 5000), max_depth: num('depth', 'Max link depth', 0, 10),
       delay_seconds: num('delay', 'Delay', 0, 30), render: $('render').value, all_people: $('all').checked,
       use_sitemaps: $('sitemap').checked, include_subdomains: $('subdomains').checked,
-      departments: $('departments').value.trim(), include_offices: $('offices').checked };
+      departments: $('departments').value.trim(), include_offices: $('offices').checked,
+      workers: $('workers') ? num('workers', 'Concurrent workers', 1, 32) : 6 };
   } catch (e) { say($('msg'), e.message, 'bad'); return; }
   $('start').disabled = true;
   const r = await postJSON('/api/jobs', body);
@@ -160,6 +161,9 @@ async function poll() {
   $('s-doctors').textContent = j.progress.doctors_total; $('s-onco').textContent = j.progress.faculty;
   $('s-offices').textContent = j.progress.offices || 0;
   $('s-time').textContent = j.elapsed + 's';
+  if ($('global-live-text')) {
+    $('global-live-text').textContent = j.state === 'running' ? `Running crawl (${j.progress.fetched} pages, ${j.progress.faculty} faculty)` : j.state === 'paused' ? 'Crawl Paused' : 'Engine Ready';
+  }
   $('bar').style.width = Math.min(100, 100 * j.progress.fetched / j.max_pages) + '%';
   const atBottom = $('log').scrollHeight - $('log').scrollTop - $('log').clientHeight < 30;
   $('log').innerHTML = j.log.map(l => {
@@ -226,7 +230,7 @@ $('b-check').onclick = async () => {
   const probs = j.problems.map(p => `<tr><td>${p.row}</td><td>${esc(p.institution)}</td><td colspan="3" class="${skipped(p) ? 'muted' : 'bad'}">${esc(p.problem)}</td></tr>`).join('');
   const fix = j.problems.filter(p => !skipped(p)).length, skip = j.problems.length - fix;
   out.innerHTML = `<p><b class="${j.usable ? 'ok' : 'bad'}">${j.usable} college${j.usable === 1 ? '' : 's'} ready</b>${fix ? `, <b class="bad">${fix} row${fix === 1 ? '' : 's'} need fixing</b>` : ''}${skip ? `, ${skip} skipped (Enabled = no)` : ''}</p>
-    <div class="tablewrap" style="max-height:300px"><table><thead><tr><th>Row</th><th>College</th><th>Start URLs</th><th>Profile pattern</th><th>Warnings / problems</th></tr></thead><tbody>${probs}${srcRows}</tbody></table></div>`;
+    <div class="tablewrap" style="max-height:300px"><table><colgroup><col style="width:60px"><col style="width:220px"><col style="width:90px"><col style="width:160px"><col style="width:240px"></colgroup><thead><tr><th>Row</th><th>College</th><th>Start URLs</th><th>Profile pattern</th><th>Warnings / problems</th></tr></thead><tbody>${probs}${srcRows}</tbody></table></div>`;
 };
 function setBatchButtons(running) {
   $('b-start').disabled = running; $('b-stop').disabled = !running; $('b-pause').disabled = !running;
@@ -246,7 +250,8 @@ $('b-start').onclick = async () => {
     Object.assign(body, { pages_per_site: num('b-pages', 'Pages per college', 1, 5000), delay_seconds: num('b-delay', 'Delay', 0, 30),
       render: $('b-render').value, all_people: $('b-all').checked, use_sitemaps: $('b-sitemap').checked,
       departments: $('b-departments').value.trim(), include_offices: $('b-offices').checked,
-      colleges_at_once: num('b-at-once', 'Colleges at once', 1, 8) });
+      colleges_at_once: num('b-at-once', 'Colleges at once', 1, 32),
+      workers: $('b-workers') ? num('b-workers', 'Workers per college', 1, 32) : 6 });
   } catch (e) { say($('b-msg'), e.message, 'bad'); return; }
   $('b-start').disabled = true;
   const r = await postJSON('/api/batch', body);
@@ -284,6 +289,9 @@ async function pollBatch() {
   $('b-time').textContent = batchDuration(j.elapsed);
   $('b-pagesnow').textContent = j.progress.fetched || 0;
   $('b-onconow').textContent = j.progress.faculty || 0;
+  if ($('global-live-text')) {
+    $('global-live-text').textContent = j.state === 'running' ? `Batch ${j.completed}/${j.total} colleges (${j.progress.faculty || 0} faculty)` : j.state === 'paused' ? 'Batch Paused' : 'Engine Ready';
+  }
   $('b-bar').style.width = (100 * j.completed / Math.max(1, j.total)) + '%';
   $('b-current').textContent = terminal
     ? (j.state === 'done' ? `Batch complete — Excel ready.${j.failed ? ' ' + j.failed + ' colleges failed; review their notes.' : ''}` : `Batch ${j.state} — results may be incomplete.`)

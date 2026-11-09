@@ -330,6 +330,8 @@ HEADER_FIELDS = {
     "name of the teacher": "name", "teacher": "name", "faculty member": "name", "member": "name", "members": "name",
     "name designation": "name", "name and designation": "name", "faculty name designation": "name",
     "name of the faculty designation": "name", "name of the faculty and designation": "name",
+    "college name": "institution", "name of college": "institution", "college": "institution",
+    "subject": "subjects", "subject name": "subjects",
 }
 
 
@@ -379,11 +381,18 @@ def tables(main: Tag, base_url: str) -> list[PersonRecord]:
         header_cells = rows[0][1]
         headers = [" ".join(c.get_text(" ", strip=True).lower().split()) if c else "" for c in header_cells]
         mapping: dict[int, str] = {}
+        college_name_columns: set[int] = set()
+        subject_columns: set[int] = set()
         for idx, h in enumerate(headers):
             h2 = " ".join(re.sub(r"[^a-z ]", " ", h).split())
             f = HEADER_FIELDS.get(h2) or label_field(h2)
             if f:
                 mapping[idx] = f
+                if h2 in {"college name", "name of college", "college"}:
+                    college_name_columns.add(idx)
+                if h2 in {"subject", "subject name"}:
+                    subject_columns.add(idx)
+        affiliation_table = bool(college_name_columns and subject_columns)
         if "name" not in mapping.values() or len(mapping) < 2:
             continue
         for row, cells in rows[1:]:
@@ -434,7 +443,13 @@ def tables(main: Tag, base_url: str) -> list[PersonRecord]:
                 elif f in ("phone", "contact_phone"):
                     nums = [(n, headers[idx] + " " + c) for n, c in phones.find(value) + phones.from_links(cells[idx])]
                     assign_phones(rec, nums, "table_row", snippet, base_url)
-                elif f in ("research_areas", "subjects", "education", "awards", "memberships"):
+                elif f == "institution" and idx in college_name_columns:
+                    rec.set(f, value, "affiliation_table", snippet)
+                elif f == "subjects":
+                    rec.set(f, [v.strip() for v in re.split(r"[,;]", value) if v.strip()], "table_row", snippet)
+                    if affiliation_table and idx in subject_columns:
+                        rec.set("department", value, "table_row", snippet)
+                elif f in ("research_areas", "education", "awards", "memberships"):
                     rec.set(f, [v.strip() for v in re.split(r"[,;]", value) if v.strip()], "table_row", snippet)
                 else:
                     rec.set(f, value, "table_row", snippet)

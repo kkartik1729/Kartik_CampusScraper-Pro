@@ -439,3 +439,128 @@ def test_a_stopped_prompt_run_stops_counting(tmp_path, monkeypatch):
         manager.close()
         db.db.close()
         history._db.close()
+
+
+def test_enterprise_platform_endpoints_quality_and_async_export(tmp_path, monkeypatch):
+    """Verify live monitor, colleges, failed websites, URL discovery, quality audit, settings, performance, and async Excel export."""
+    import time as _t
+    from fastapi.testclient import TestClient
+    from campusscraper import web
+    from campusscraper.export import validate_xlsx
+    from campusscraper.models import PersonRecord
+    from campusscraper.quality import audit_records, compute_confidence
+    from campusscraper.store import Store
+
+    db_path = tmp_path / "enterprise.db"
+    monkeypatch.setenv("CAMPUSSCRAPER_DB", str(db_path))
+    monkeypatch.setattr(web, "OUT_DIR", tmp_path)
+    monkeypatch.setattr(web, "_STORE", None)
+    monkeypatch.setattr(web, "_EXPORT_MANAGER", None)
+
+    temp_store = web.store()
+
+    # Seed a run with faculty records
+    temp_store.create_run("run1", "crawl", "Test College Crawl", {"urls": ["https://college.edu"]})
+    rec1 = PersonRecord(
+        source_url="https://college.edu/faculty",
+        profile_url="https://college.edu/faculty/asha",
+        source_institution="Test Engineering College",
+        relevance_score=3.0,
+        values={
+            "name": "Dr. Asha Kulkarni",
+            "designation": "Professor",
+            "department": "Computer Science and Engineering",
+            "institution": "Test Engineering College",
+            "city": "Pune",
+            "email": "asha.kulkarni@college.edu",
+            "phone": "+91 98765 43210",
+            "qualifications": ["Ph.D."],
+        },
+    )
+    rec2 = PersonRecord(
+        source_url="https://college.edu/faculty",
+        profile_url="https://college.edu/faculty/vikram",
+        source_institution="Test Engineering College",
+        relevance_score=3.0,
+        values={
+            "name": "Prof. Vikram Joshi",
+            "designation": "Associate Professor",
+            "department": "Information Technology",
+            "institution": "Test Engineering College",
+            "city": "Pune",
+            "email": "vikram.joshi@college.edu",
+        },
+    )
+    temp_store.save_people("run1", [rec1, rec2])
+    temp_store.save_site("run1", {"row": 1, "institution": "Test Engineering College", "status": "done", "pages": 12, "faculty": 2, "offices": 0, "note": "", "start_urls": "https://college.edu/faculty"})
+    temp_store.save_site("run1", {"row": 2, "institution": "Failed College", "status": "failed", "pages": 0, "faculty": 0, "offices": 0, "note": "Connection timeout", "start_urls": "https://failed.college.edu"})
+    temp_store.update_run("run1", state="done", finished=_t.time())
+
+    try:
+        # 1. Confidence & Quality Audit
+        c1 = compute_confidence(rec1)
+        assert c1["score"] >= 80 and c1["grade"] == "high"
+        audit = audit_records([rec1, rec2])
+        assert audit["total_records"] == 2
+        assert audit["valid_emails"] == 2
+        assert audit["valid_phones"] == 1
+
+        client = TestClient(web.app)
+
+        # 2. Live Monitor
+        r_mon = client.get("/api/monitor/live")
+        assert r_mon.status_code == 200
+        assert "total_colleges" in r_mon.json()
+
+        # 3. College Management
+        r_col = client.get("/api/colleges")
+        assert r_col.status_code == 200
+        colleges = r_col.json()["colleges"]
+        assert any(c["college"] == "Test Engineering College" for c in colleges)
+
+        # 4. Failed Websites
+        r_fail = client.get("/api/failed-websites")
+        assert r_fail.status_code == 200
+        assert any(f["institution"] == "Failed College" for f in r_fail.json()["failed_colleges"])
+
+        # 5. Discovered URLs
+        r_urls = client.get("/api/urls/discovered")
+        assert r_urls.status_code == 200
+        assert r_urls.json()["total"] >= 1
+
+        # 6. Quality Summary API
+        r_qual = client.get("/api/quality/summary")
+        assert r_qual.status_code == 200
+        assert r_qual.json()["total_records"] == 2
+
+        # 7. Settings API
+        r_set = client.post("/api/settings", json={"workers": 8, "colleges_at_once": 4, "adaptive_concurrency": True})
+        assert r_set.status_code == 200
+        assert r_set.json()["settings"]["workers"] == 8
+
+        # 8. System Performance API
+        r_perf = client.get("/api/system/performance")
+        assert r_perf.status_code == 200
+        assert "cpu_percent" in r_perf.json()["current"]
+
+        # 9. Async Excel Export & Validation
+        r_exp = client.post("/api/exports/start", json={"scope": "master", "city": "Pune"})
+        assert r_exp.status_code == 200
+        exp_id = r_exp.json()["id"]
+        for _ in range(40):
+            st = client.get(f"/api/exports/{exp_id}").json()
+            if st["state"] in ("done", "failed"):
+                break
+            _t.sleep(0.1)
+        assert st["state"] == "done", f"Export failed: {st}"
+        assert st["validation"]["ok"] is True
+        dl = client.get(f"/api/exports/{exp_id}/download.xlsx")
+        assert dl.status_code == 200
+        xlsx_path = tmp_path / "downloaded.xlsx"
+        xlsx_path.write_bytes(dl.content)
+        v = validate_xlsx(xlsx_path)
+        assert v["ok"] is True and v["faculty_rows"] == 2
+    finally:
+        temp_store._db.close()
+        web._STORE = None
+        web._EXPORT_MANAGER = None

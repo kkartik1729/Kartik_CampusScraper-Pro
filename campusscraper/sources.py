@@ -208,9 +208,8 @@ def read_sources(path: str | Path) -> tuple[list[Source], list[Problem]]:
         sample, bad3 = _urls(row.get("sample_profile_url", ""))
         home, bad4 = _urls(row.get("official_website", ""))
         warnings = [f"ignored invalid URL: {b}" for b in bad1 + bad2 + bad3 + bad4 + bad5]
-        urls = list(dict.fromkeys(fac + depts + office + sample[:1]))
-        if not urls and home:
-            urls = [home[0].rstrip("/") + "/"]
+        urls = list(dict.fromkeys(fac + depts + office + sample[:1] + [h.rstrip("/") + "/" for h in home[:1]]))
+        if not (fac or depts or office or sample) and home:
             warnings.append("no page URL given; starting from the home page (uses more of the page budget)")
         if not urls:
             problems.append(Problem(i, name, "no usable URL: fill Faculty Page URLs, Department URLs or Official Website"))

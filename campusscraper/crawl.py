@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import heapq
 import itertools
 import logging
@@ -72,6 +73,7 @@ class Merger:
         self._by_url: dict[str, PersonRecord] = {}
         self._by_name: dict[str, list[PersonRecord]] = {}
         self._by_loose: dict[str, list[PersonRecord]] = {}
+        self.duplicates_merged: int = 0
 
     def add(self, rec: PersonRecord) -> PersonRecord:
         key_u = url_key(rec.profile_url)
@@ -122,6 +124,7 @@ class Merger:
             self.records.append(rec)
             target = rec
         elif target is not rec:
+            self.duplicates_merged += 1
             # Keep every attributed contact when a verified person has both a directory
             # address and a different address/number in their CV or profile.
             base, other = (rec, target) if rec.page_type == "profile" and target.page_type != "profile" else (target, rec)
@@ -205,6 +208,8 @@ class Crawler:
         self._seq = itertools.count()
         self._queued: set[str] = set()
         self._visited: set[str] = set()
+        self._content_hashes: set[str] = set()
+        self.duplicate_pages: int = 0
         self.merger = Merger()
         self.offices: list[OfficeRecord] = []
         self._focus_profile_urls: set[str] = set()
@@ -234,8 +239,8 @@ class Crawler:
             s += 50
         if LISTING_URL_HINTS.search(path):
             s += 35
-        if re.search(r"facult(?:y|ies)(?:[-_/]?(?:new|list|members|profile))?/?$|/department[s]?/[^/]+/?$", p.path, re.I):
-            s += 250  # Discover all departments before spending the budget on individual profiles.
+        if re.search(r"facult(?:y|ies)(?:[-_/]?(?:new|list|members|profile|directory))?/?$|/department[s]?/[^/]+/?$|/(?:people|staff|management|academic-staff|leadership|administration)/?$", p.path, re.I):
+            s += 250  # Discover all departments and directories before spending the budget on individual profiles.
         elif hint == "directory":
             s += 180
         if FOCUS_URL_HINTS.search(path):
@@ -346,6 +351,7 @@ class Crawler:
 
     # -- main loop ------------------------------------------------------------
     def run(self, start_urls: list[str]) -> CrawlResult:
+        from .system_monitor import MONITOR
         starts = [normalize_url(u if re.match(r"https?://", u) else "https://" + u) for u in start_urls]
         self._set_path_scopes(starts)
         result = CrawlResult(starts)
@@ -429,62 +435,92 @@ class Crawler:
                 for u in pr.links:
                     path = urlsplit(u).path
                     text = pr.link_texts.get(u, "")
-                    directory = bool(re.search(r"facult|department|\bdept\b|teaching staff", text, re.I))
+                    directory = bool(re.search(r"facult|department|\bdept\b|teaching staff|people|management|academic staff", text, re.I))
                     if (LISTING_URL_HINTS.search(path) or FOCUS_URL_HINTS.search(path) or directory or PROFILE_URL_HINTS.search(path)
                             or (self.cfg.include_offices and OFFICE_URL_HINTS.search(path + " " + text))
                             or (pr.page_type != "profile" and (LINK_TEXT_HINTS.search(text) or depth == 0))):
                         self._push(u, depth + 1, page_focus or bool(FOCUS_URL_HINTS.search(text)), "directory" if directory else "", start)
-            self.progress({"event": "page", "url": page.final_url, "type": pr.page_type, "status": page.status,
-                           "doctors_on_page": len(pr.doctors), "fetched": fetched, "queued": len(self._frontier),
-                           "doctors_total": len(self.merger.records),
-                           "faculty": sum(1 for d in self.merger.records if d.is_relevant),
-                           "offices": len(self.offices),
-                           "error": page.error})
+            fac_records = [d for d in self.merger.records if d.is_relevant]
+            self.progress({
+                "event": "page",
+                "url": page.final_url,
+                "type": pr.page_type,
+                "status": page.status,
+                "doctors_on_page": len(pr.doctors),
+                "fetched": fetched,
+                "queued": len(self._frontier),
+                "discovered": len(self._queued),
+                "doctors_total": len(self.merger.records),
+                "faculty": len(fac_records),
+                "with_email": sum(1 for d in fac_records if d.get("email")),
+                "with_phone": sum(1 for d in fac_records if d.get("phone")),
+                "duplicates_removed": self.merger.duplicates_merged + self.duplicate_pages,
+                "offices": len(self.offices),
+                "error": page.error,
+            })
 
-        def worker() -> None:
-            relevance.set_targets(self.cfg.departments)
-            while True:
-                while self.pause_event.is_set() and not self.stop_event.is_set():
-                    time.sleep(0.3)  # paused: keep everything found so far and wait for Resume
-                with lock:
-                    job = take()
-                if job is None:
-                    return
-                if job == "":
-                    time.sleep(0.05)
-                    continue
-                url, depth, from_focus = job
-                try:
-                    page = self.fetcher.get(url)  # network and parsing happen outside the lock
-                    if not self._within_path_scope(page.final_url):
-                        page = Page(url, page.final_url, page.status, "", error="redirect outside supplied campus path")
-                    if page.content_type == "application/pdf":
-                        from .pdf_profiles import extract_faculty_pdf
-                        pr = extract_faculty_pdf(page, self._pdf_people.get(url))
-                    else:
-                        pr = extract_page(page)
-                        # A faculty or staff page that named nobody is worth one
-                        # look through the browser: the list is often drawn by
-                        # JavaScript into a page that already carries its menu.
-                        if (not pr.doctors and not page.rendered and self.cfg.render == "auto"
-                                and LISTING_URL_HINTS.search(urlsplit(page.final_url).path)):
-                            shown = self.fetcher.render_now(page)
-                            if shown is not None:
-                                drawn = extract_page(shown)
-                                if drawn.doctors or drawn.offices:
-                                    page, pr = shown, drawn
-                except Exception as exc:  # one bad page must not stop the site
-                    log.warning("page %s failed: %s", url, exc)
-                    page = Page(url, url, 0, "", error=f"{type(exc).__name__}: {exc}")
-                    pr = PageResult(url, "error", signals={"error": page.error})
-                with lock:
+        def worker(worker_idx: int) -> None:
+            MONITOR.adjust_workers(1)
+            try:
+                relevance.set_targets(self.cfg.departments)
+                while True:
+                    while self.pause_event.is_set() and not self.stop_event.is_set():
+                        time.sleep(0.3)  # paused: keep everything found so far and wait for Resume
+                    if self.cfg.adaptive_concurrency and worker_idx >= 2:
+                        snap = MONITOR.snapshot(record_history=False)
+                        if snap.throttled and worker_idx >= snap.recommended_workers:
+                            time.sleep(0.4)
+                    with lock:
+                        job = take()
+                    if job is None:
+                        return
+                    if job == "":
+                        time.sleep(0.05)
+                        continue
+                    url, depth, from_focus = job
                     try:
-                        handle(url, depth, from_focus, page, pr)
-                    finally:
-                        state["in_flight"] -= 1
+                        page = self.fetcher.get(url)  # network and parsing happen outside the lock
+                        if not self._within_path_scope(page.final_url):
+                            page = Page(url, page.final_url, page.status, "", error="redirect outside supplied campus path")
+                        if not page.error and page.html and len(page.html) > 250:
+                            sig = hashlib.md5(page.html.encode("utf-8", errors="ignore")).hexdigest()
+                            with lock:
+                                if sig in self._content_hashes and depth > 0:
+                                    self.duplicate_pages += 1
+                                    page = Page(url, page.final_url, page.status, "", error="duplicate page content skipped")
+                                else:
+                                    self._content_hashes.add(sig)
+                        if page.content_type == "application/pdf":
+                            from .pdf_profiles import extract_faculty_pdf
+                            pr = extract_faculty_pdf(page, self._pdf_people.get(url))
+                        elif page.error == "duplicate page content skipped":
+                            pr = PageResult(page.final_url, "other", signals={"note": "duplicate_content"})
+                        else:
+                            pr = extract_page(page)
+                            # A faculty or staff page that named nobody is worth one
+                            # look through the browser: the list is often drawn by
+                            # JavaScript into a page that already carries its menu.
+                            if (not pr.doctors and not page.rendered and self.cfg.render == "auto"
+                                    and LISTING_URL_HINTS.search(urlsplit(page.final_url).path)):
+                                shown = self.fetcher.render_now(page)
+                                if shown is not None:
+                                    drawn = extract_page(shown)
+                                    if drawn.doctors or drawn.offices:
+                                        page, pr = shown, drawn
+                    except Exception as exc:  # one bad page must not stop the site
+                        log.warning("page %s failed: %s", url, exc)
+                        page = Page(url, url, 0, "", error=f"{type(exc).__name__}: {exc}")
+                        pr = PageResult(url, "error", signals={"error": page.error})
+                    with lock:
+                        try:
+                            handle(url, depth, from_focus, page, pr)
+                        finally:
+                            state["in_flight"] -= 1
+            finally:
+                MONITOR.adjust_workers(-1)
 
         try:
-            threads = [threading.Thread(target=worker, daemon=True, name=f"crawl-{i}") for i in range(self.cfg.workers)]
+            threads = [threading.Thread(target=worker, args=(i,), daemon=True, name=f"crawl-{i}") for i in range(self.cfg.workers)]
             for t in threads:
                 t.start()
             for t in threads:
@@ -501,6 +537,7 @@ class Crawler:
         if strip_shared_name_suffix(result.doctors):
             # 'Dr. Anitha Rao PESU' (card) and 'Dr. Anitha Rao' (profile) only meet once the acronym is gone.
             remerge = Merger()
+            remerge.duplicates_merged = self.merger.duplicates_merged
             for d in result.doctors:
                 remerge.add(d)
             self.merger = remerge
@@ -524,12 +561,24 @@ class Crawler:
             stop_reason = "no_new_data"
         else:
             stop_reason = "queue_exhausted"
+        fac_list = result.faculty
         result.stats = {
-            "pages_fetched": fetched, "requests": self.fetcher.requests_made, "page_types": counts,
-            "people_found": len(result.doctors), "faculty": len(result.faculty), "offices": len(result.offices),
+            "pages_fetched": fetched,
+            "urls_discovered": len(self._queued),
+            "requests": self.fetcher.requests_made,
+            "page_types": counts,
+            "people_found": len(result.doctors),
+            "faculty": len(fac_list),
+            "faculty_with_own_email": sum(1 for d in fac_list if d.get("email")),
+            "faculty_with_own_phone": sum(1 for d in fac_list if d.get("phone")),
+            "duplicates_removed": self.merger.duplicates_merged + self.duplicate_pages,
+            "duplicate_pages_skipped": self.duplicate_pages,
+            "offices": len(result.offices),
             "profiles_fetched": sum(1 for d in result.doctors if d.page_type == "profile"),
-            "seconds": round(time.time() - t0, 1), "stopped_early": self.stop_event.is_set(),
-            "frontier_left": len(self._frontier), "blocked_by_robots": len(self.blocked),
+            "seconds": round(time.time() - t0, 1),
+            "stopped_early": self.stop_event.is_set(),
+            "frontier_left": len(self._frontier),
+            "blocked_by_robots": len(self.blocked),
             "crawl_delays": {origin: max(self.cfg.delay_seconds, policy.crawl_delay)
                              for origin, policy in self.fetcher._robots.items()},
             "stopped_no_new_people": state["patience_stop"],

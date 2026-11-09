@@ -35,6 +35,7 @@ LAYER_PRIORITY = {
     "sections": 65,
     "listing_card": 55,
     "table_row": 55,
+    "affiliation_table": 60,
     "patterns": 50,
     "page": 40,
     "meta": 30,

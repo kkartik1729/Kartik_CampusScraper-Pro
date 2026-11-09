@@ -34,6 +34,8 @@ class ScrapeConfig:
     strict_public_network: bool = False  # automatic prompt discovery checks DNS and every redirect
     save_html_dir: str | None = None   # write every fetched page here for debugging
     extra_profile_patterns: list[str] = field(default_factory=list)  # e.g. ["/consultant/"]
+    adaptive_concurrency: bool = True  # automatically throttle workers when system CPU/RAM are constrained
+    use_url_cache: bool = False        # opt-in response caching across runs for incremental scraping
 
     def validate(self) -> "ScrapeConfig":
         if self.render not in {"never", "auto", "always"}:
@@ -42,8 +44,8 @@ class ScrapeConfig:
             raise ValueError("max_pages must be 1..20000")
         if not 0 <= self.max_depth <= 10:
             raise ValueError("max_depth must be 0..10")
-        if not 1 <= self.workers <= 8:
-            raise ValueError("workers must be 1..8")
+        if not 1 <= self.workers <= 32:
+            raise ValueError("workers must be 1..32")
         if self.patience < 0:
             raise ValueError("patience must be >= 0")
         if self.delay_seconds < 0:

@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusScraper Pro — Intelligent Academic Intelligence Platform</title>
+<style>
+:root {
+  --bg: #070d17;
+  --bg-2: #0c1526;
+  --card: rgba(15, 25, 42, 0.78);
+  --card-solid: #101b2e;
+  --ink: #e8f1f8;
+  --muted: #8ca3ba;
+  --line: rgba(94, 142, 196, 0.2);
+  --accent: #0ea5e9;
+  --accent-2: #06b6d4;
+  --accent-glow: rgba(14, 165, 233, 0.25);
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 14px/1.55 "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at 12% 0%, #0e2442 0%, #070d17 48%, #050911 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+header {
+  background: rgba(9, 17, 32, 0.86);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--line);
+  color: #fff;
+  padding: 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+.brand-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 1480px;
+  margin: 0 auto 12px;
+}
+header h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #ffffff 0%, #38bdf8 55%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+header p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.header-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(14, 165, 233, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  color: #7dd3fc;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+.bar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+nav {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+nav a {
+  color: #b4c8dc;
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.18s ease;
+  border: 1px solid transparent;
+}
+nav a:hover {
+  color: #fff;
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(56, 189, 248, 0.22);
+}
+nav a.on {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.26), rgba(6, 182, 212, 0.22));
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.48);
+  box-shadow: 0 0 16px rgba(14, 165, 233, 0.18);
+}
+.page {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 20px 20px 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+.card {
+  background: var(--card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  min-width: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s ease;
+}
+.card:hover { border-color: rgba(56, 189, 248, 0.34); }
+h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #f0f7ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+label { display: block; font-weight: 600; font-size: 12.5px; color: #bfd2e6; margin: 0 0 5px; }
+textarea, input, select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid rgba(116, 158, 204, 0.28);
+  border-radius: 8px;
+  font: inherit;
+  background: rgba(8, 15, 28, 0.85);
+  color: var(--ink);
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+textarea:focus, input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+textarea { min-height: 72px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  align-items: end;
+}
+.check { display: flex; gap: 8px; align-items: center; font-weight: 500; margin-top: 20px; cursor: pointer; }
+.check input { width: auto; accent-color: var(--accent); }
+.grid > .check { margin-top: 0; align-self: end; padding: 9px 0; }
+button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 9px 16px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.24);
+}
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.38);
+  filter: brightness(1.08);
+}
+button.secondary {
+  background: rgba(16, 29, 49, 0.75);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: none;
+}
+button.secondary:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: #38bdf8;
+}
+button.danger {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  box-shadow: none;
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.row.checks { gap: 20px; }
+.row.checks .check { margin-top: 0; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 6px 0 0; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 11px;
+}
+.stat {
+  background: linear-gradient(160deg, rgba(16, 28, 48, 0.9), rgba(10, 18, 33, 0.85));
+  border: 1px solid rgba(86, 138, 194, 0.18);
+  border-radius: 11px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+}
+.stat b { display: block; font-size: 22px; line-height: 1.2; color: #f8fafc; font-weight: 700; }
+.stat b small { font-size: 12px; font-weight: 600; color: #38bdf8; white-space: nowrap; }
+.stat span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.bar {
+  height: 10px;
+  background: rgba(30, 48, 74, 0.85);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 12px 0;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #06b6d4, #22d3ee);
+  width: 0;
+  transition: width 0.35s ease;
+}
+.log, .console-box {
+  font: 12.5px/1.55 "JetBrains Mono", ui-monospace, Consolas, monospace;
+  max-height: 280px;
+  overflow: auto;
+  background: #050a14;
+  color: #cfe8ff;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+.log .x { color: #f87171; }
+.log .p { color: #4ade80; }
+.log .l { color: #38bdf8; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td {
+  text-align: left;
+  padding: 8px 9px;
+  border-bottom: 1px solid rgba(94, 142, 196, 0.14);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+th {
+  background: #0d192b;
+  color: #93c5fd;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+tbody tr:hover { background: rgba(14, 165, 233, 0.06); }
+.tablewrap table { table-layout: fixed; min-width: 720px; }
+th.nowrap, td.nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.clamp.l3 { -webkit-line-clamp: 3; line-clamp: 3; }
+.clamp.l1 { -webkit-line-clamp: 1; line-clamp: 1; }
+.tablewrap {
+  max-height: 560px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(7, 13, 24, 0.55);
+}
+.tablewrap.sites { max-height: 620px; overflow-y: scroll; }
+td.contact { font-weight: 600; color: #7dd3fc; }
+.sub { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; color: var(--muted); font-size: 12px; }
+table.people td:first-child .clamp, table.offices td:nth-child(2) .clamp { font-weight: 700; color: #f8fafc; }
+td.muted { color: var(--muted); font-size: 12px; }
+.ok { color: var(--ok); }
+.warn { color: var(--warn); }
+.bad { color: var(--bad); }
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(14, 165, 233, 0.16);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  white-space: nowrap;
+}
+.state { font-weight: 700; }
+.state.failed { color: var(--bad); }
+.state.done { color: var(--ok); }
+.state.paused { color: var(--warn); }
+pre.json { background: #060b14; padding: 12px; border-radius: 8px; overflow: auto; max-height: 420px; font-size: 12px; border: 1px solid var(--line); }
+a { color: #38bdf8; text-decoration: none; }
+a:hover { text-decoration: underline; }
+td a { overflow-wrap: normal; word-break: normal; }
+.cov { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(30, 48, 74, 0.8); min-width: 80px; }
+.cov i { display: block; height: 100%; }
+.cov .e { background: #22c55e; }
+.cov .p { background: #0ea5e9; }
+.cov .o { background: #64748b; }
+.legend { font-size: 12px; color: var(--muted); }
+.legend b { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
+.actions { white-space: nowrap; }
+.actions .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions button { padding: 5px 10px; font-size: 12.5px; margin: 0; white-space: nowrap; }
+.view[hidden] { display: none; }
+table.people { min-width: 1180px; }
+table.offices { min-width: 1060px; }
+table.runs { min-width: 980px; }
+table.sites { min-width: 1020px; }
+table.colleges { min-width: 900px; }
+.msg { margin: 8px 0 0; font-size: 13px; min-height: 0; }
+.msg:empty { display: none; }
+.msg.bad { color: var(--bad); font-weight: 600; }
+.msg.ok { color: var(--ok); }
+.msg.info { color: var(--muted); }
+.source-label { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+td.empty { text-align: center; color: var(--muted); padding: 20px; }
+.summary dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0; font-size: 13.5px; }
+.summary dt { color: var(--muted); }
+.summary dd { margin: 0; }
+details summary { cursor: pointer; color: #38bdf8; font-size: 13px; margin-top: 8px; font-weight: 600; }
+.prompt-stages { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.prompt-stages span { border: 1px solid var(--line); padding: 6px 12px; border-radius: 20px; font-size: 12.5px; color: var(--muted); }
+.prompt-stages .current { border-color: #38bdf8; background: rgba(14, 165, 233, 0.2); color: #fff; font-weight: 700; }
+.prompt-sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 12px; }
+.prompt-source { border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; background: rgba(10, 18, 32, 0.65); }
+.prompt-source a { overflow-wrap: anywhere; }
+.prompt-source p { margin: 4px 0; }
+#p-status, #p-work, #p-usage { overflow-wrap: anywhere; }
+#p-status { font-weight: 600; }
+.prompt-source ul { margin: 6px 0; padding-left: 20px; }
+.split-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+.gauge-bar { height: 12px; background: rgba(30, 48, 74, 0.85); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+.gauge-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #22c55e, #0ea5e9); transition: width 0.3s ease; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand-row">
+    <div>
+      <h1>CampusScraper Pro</h1>
+      <p>High-Performance Academic Faculty Discovery, Live Telemetry &amp; Automated Excel Intelligence Platform</p>
+    </div>
+    <div class="header-controls">
+      <span class="status-badge" id="global-live-pill"><span class="status-dot"></span><span id="global-live-text">System Ready</span></span>
+      <button type="button" class="secondary" id="hdr-start-btn" onclick="location.hash='#new'">Start Scraping</button>
+      <button type="button" class="secondary" id="hdr-monitor-btn" onclick="location.hash='#monitor'">Live Monitor</button>
+      <button type="button" id="hdr-export-btn" onclick="location.hash='#exports'">Export Excel</button>
+    </div>
+  </div>
+  <div class="bar-top">
+    <nav id="nav">
+      <a href="#dashboard">1. Dashboard</a>
+      <a href="#new">2. Start New Scraping</a>
+      <a href="#colleges">3. College Management</a>
+      <a href="#monitor">4. Live Scraping Monitor</a>
+      <a href="#directory">5. Faculty Records</a>
+      <a href="#urls">6. URL Discovery</a>
+      <a href="#failed">7. Failed Websites</a>
+      <a href="#exports">8. Excel Export Center</a>
+      <a href="#runs">9. Scraping History</a>
+      <a href="#settings">10. Settings</a>
+      <a href="#performance">11. System Performance</a>
+      <a href="#offices">Student Offices</a>
+    </nav>
+  </div>
+</header>
+<main>
+
+<!-- 1. DASHBOARD -->
+<div id="view-dashboard" class="page view" hidden>
+<section class="card">
+  <h2>Platform Overview &amp; Live Coverage</h2>
+  <div class="stats" id="d-totals"></div>
+  <p class="hint">Counts every verified faculty member and student office once across all runs, using the latest consolidated record.</p>
+</section>
+<section class="card">
+  <h2>Faculty and Offices by College</h2>
+  <div class="tablewrap"><table class="colleges"><colgroup><col style="width:26%"><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:13%"><col style="width:12%"></colgroup><thead><tr><th>College</th><th>Faculty</th><th>With own email</th><th>With own phone</th><th>With any contact</th><th>With Scholar / ORCID</th><th>Student offices</th><th>Contact coverage</th></tr></thead>
+  <tbody id="d-coll"></tbody></table></div>
+</section>
+<section class="card">
+  <h2>Recent Scraping Runs</h2>
+  <div class="tablewrap"><table class="runs"><colgroup><col style="width:16%"><col><col style="width:18%"><col style="width:9%"><col style="width:9%"></colgroup><thead><tr><th class="nowrap">Started</th><th>Run</th><th>Status</th><th>Faculty</th><th>Offices</th></tr></thead><tbody id="d-runs"></tbody></table></div>
+</section>
+</div>
+
+<!-- 2. START NEW SCRAPING -->
+<div id="view-new" class="page view">
+<section class="card" id="prompt-card">
+  <h2>Find colleges and contacts from a prompt</h2>
+  <p class="hint">Describe what you need in your own words. We find official source pages, extract published contacts, and apply your filters. Individual students are excluded.</p>
+  <p class="msg" id="p-config" role="status"></p>
+  <label for="p-text" style="margin-top:12px">What are you looking for?</label>
+  <textarea id="p-text" maxlength="6000" rows="3" placeholder="Find 10 engineering colleges in Mumbai and their faculty contacts. Exclude Navi Mumbai."></textarea>
+  <label class="check" style="margin-top:10px"><input type="checkbox" id="p-auto" checked> Also extract faculty contacts (uncheck for source URLs only)</label>
+  <details><summary>Run limits and options</summary>
+    <div class="grid">
+      <div><label for="p-colleges">Maximum colleges</label><input id="p-colleges" type="number" value="10" min="1" max="100"></div>
+      <div><label for="p-pages">Discovery pages</label><input id="p-pages" type="number" value="60" min="1" max="100"></div>
+      <div><label for="p-searches">Search queries</label><input id="p-searches" type="number" value="12" min="1" max="30"></div>
+      <div><label for="p-crawl-pages">Pages per college</label><input id="p-crawl-pages" type="number" value="200" min="1" max="1000"></div>
+      <div><label for="p-render">JavaScript pages</label><select id="p-render"><option value="auto">Auto browser</option><option value="never">Plain HTTP only</option><option value="always">Always browser</option></select></div>
+      <div><label for="p-engine">How colleges are verified</label><select id="p-engine"><option value="sites">Crawl each site (no AI)</option><option value="evidence">AI judges each page</option></select></div>
+      <div><label for="p-site-pages">Pages read per site while checking</label><input id="p-site-pages" type="number" value="14" min="2" max="60"></div>
+      <div><label for="p-site-seconds">Seconds per site</label><input id="p-site-seconds" type="number" value="40" min="10" max="300"></div>
+      <div><label for="p-site-workers">Sites at the same time</label><input id="p-site-workers" type="number" value="6" min="1" max="12"></div>
+    </div>
+    <p class="hint"><b>Crawl each site</b> proves a college by reading its own pages: it is listed only when the extractor
+    actually reads staff from one of its pages, and it needs no AI model. <b>AI judges each page</b> uses the configured
+    model instead, and is the one to pick for conditions about individual people.
+    These are work limits, not promises of complete coverage. If you request more colleges than the maximum, the shortfall will be reported.</p>
+  </details>
+  <div class="row"><button type="button" id="p-start">Find and scrape</button><button type="button" id="p-pause" class="secondary" disabled>Pause</button><button type="button" id="p-stop" class="secondary" disabled>Stop</button><button type="button" id="p-resume" class="secondary" hidden>Resume saved run</button></div>
+  <p class="msg" id="p-msg" role="status" aria-live="polite"></p>
+  <div id="p-run" hidden>
+    <div class="prompt-stages" id="p-stages"><span data-phase="planning">1 · Understand</span><span data-phase="searching">2 · Find sources</span><span data-phase="scraping">3 · Extract</span><span data-phase="filtering">4 · Match criteria</span><span data-phase="exporting">5 · Save Excel</span></div>
+    <p id="p-status" role="status" aria-live="polite"></p>
+    <div class="stats" id="p-stats"></div>
+    <div class="bar" id="p-bar" hidden><i id="p-bar-fill"></i></div>
+    <p class="hint" id="p-work"></p>
+    <p class="hint" id="p-usage"></p>
+    <div id="p-clarify" hidden><label for="p-answer">A little more detail is needed</label><p id="p-questions"></p><textarea id="p-answer" maxlength="2000" placeholder="Add the missing detail"></textarea><div class="row"><button type="button" id="p-answer-btn">Continue with clarification</button></div></div>
+    <details id="p-plan-wrap"><summary>Interpreted requirements</summary><div id="p-plan"></div></details>
+    <div class="prompt-sources" id="p-sources"></div>
+    <div class="row"><button type="button" id="p-download" hidden>Download contacts Excel</button><button type="button" id="p-source-download" class="secondary" hidden>Download source URLs</button><button type="button" id="p-audit" class="secondary">Download evidence report</button></div>
+    <details id="p-notes-wrap" hidden><summary>Coverage notes</summary><ul id="p-notes"></ul></details>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Crawl a college list (Excel Batch)</h2>
+  <p class="hint" style="margin-top:0">Upload an Excel/CSV college list in the standard template. Multiple colleges are processed concurrently with checkpoint saving and domain pacing.</p>
+  <div class="row" style="margin-top:6px">
+    <button class="secondary" type="button" id="b-template">Download blank template</button>
+    <input type="file" id="b-file" accept=".xlsx,.csv" style="flex:1;min-width:240px">
+    <button id="b-check" class="secondary" type="button">Check file</button>
+  </div>
+  <p class="msg" id="b-msg" role="status"></p>
+  <div id="b-check-out" hidden style="margin-top:12px"></div>
+  <div class="grid">
+    <div><label for="b-pages">Pages per college</label><input id="b-pages" type="number" value="150" min="1" max="5000"></div>
+    <div><label for="b-at-once">Colleges at once</label><input id="b-at-once" type="number" value="4" min="1" max="32"></div>
+    <div><label for="b-workers">Workers per college</label><input id="b-workers" type="number" value="4" min="1" max="32"></div>
+    <div><label for="b-delay">Delay between requests (s)</label><input id="b-delay" type="number" value="1.5" step="0.5" min="0"></div>
+    <div><label for="b-render">JavaScript / firewalled sites</label><select id="b-render"><option value="auto">Auto browser</option><option value="never">Plain HTTP only</option><option value="always">Always browser</option></select></div>
+    <div><label for="b-departments">Departments (blank = all)</label><input id="b-departments" placeholder="CSE, IT, ECE, MBA"></div>
+    <label class="check"><input type="checkbox" id="b-offices" checked> Student offices</label>
+    <label class="check"><input type="checkbox" id="b-all"> CSV: everyone</label>
+    <label class="check"><input type="checkbox" id="b-sitemap" checked> Use sitemap.xml</label>
+  </div>
+  <div class="row">
+    <button id="b-start" type="button">Start batch</button>
+    <button id="b-pause" class="secondary" type="button" disabled>Pause</button>
+    <button id="b-stop" class="secondary" type="button" disabled>Stop</button>
+    <button id="b-open-monitor" class="secondary" type="button" onclick="location.hash='#monitor'">Open Live Monitor</button>
+    <span class="hint" id="b-status"></span>
+  </div>
+  <div id="b-progress" hidden>
+    <div class="bar"><i id="b-bar"></i></div>
+    <div class="stats">
+      <div class="stat"><span>Colleges finished</span><b id="b-idx">0/0</b></div>
+      <div class="stat"><span>Pages · all colleges</span><b id="b-pagesnow">0</b></div>
+      <div class="stat"><span>Faculty · all colleges</span><b id="b-onconow">0</b></div>
+      <div class="stat"><span>Elapsed</span><b id="b-time">0s</b></div>
+    </div>
+    <p id="b-current" role="status" aria-live="polite"></p>
+    <p class="hint" id="b-remaining"></p>
+    <p class="hint">Colleges stay in upload order. Hover over the number to see the spreadsheet row.
+    Finished means the configured crawl ended; it does not guarantee every faculty member was found.</p>
+    <div class="tablewrap sites" id="b-wrap" style="margin-top:10px"><table class="sites"><colgroup><col style="width:4%"><col style="width:20%"><col style="width:9%"><col style="width:6%"><col style="width:8%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:17%"></colgroup>
+      <thead><tr><th>#</th><th>College</th><th>Status</th><th>Pages</th><th>Faculty</th><th>Student offices</th><th>With own phone</th><th>With own email</th><th>With any contact</th><th>Note</th></tr></thead>
+      <tbody id="b-sites"></tbody></table></div>
+    <div class="row" id="b-dl" hidden><button type="button" id="b-dl-btn">Download combined Excel</button>
+      <button type="button" class="secondary" id="b-show">Show results below</button><span class="hint" id="b-totals"></span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Crawl one website</h2>
+  <label for="urls">Start URL(s), one per line</label>
+  <textarea id="urls" placeholder="https://www.college.ac.in/faculty"></textarea>
+  <div class="grid">
+    <div><label for="max_pages">Max pages</label><input id="max_pages" type="number" value="200" min="1" max="20000"></div>
+    <div><label for="depth">Max link depth</label><input id="depth" type="number" value="4" min="0" max="10"></div>
+    <div><label for="workers">Concurrent workers</label><input id="workers" type="number" value="4" min="1" max="32"></div>
+    <div><label for="delay">Delay between requests (s)</label><input id="delay" type="number" value="1.5" step="0.5" min="0"></div>
+    <div><label for="render">JavaScript pages</label><select id="render"><option value="auto">Auto browser</option><option value="never">Plain HTTP only</option><option value="always">Always browser</option></select></div>
+    <div><label for="departments">Departments (blank = all)</label><input id="departments" placeholder="CSE, IT, ECE"></div>
+    <label class="check"><input type="checkbox" id="offices" checked> Student offices</label>
+    <label class="check"><input type="checkbox" id="all"> CSV: everyone</label>
+    <label class="check"><input type="checkbox" id="sitemap" checked> Use sitemap.xml</label>
+    <label class="check"><input type="checkbox" id="subdomains"> Include subdomains</label>
+  </div>
+  <div class="row"><button id="start">Start crawl</button><button id="pause" class="secondary" disabled>Pause</button><button id="stop" class="secondary" disabled>Stop</button>
+  <span class="hint">robots.txt is always respected. Only the same website is crawled.</span></div>
+  <p class="msg" id="msg" role="status"></p>
+</section>
+
+<section class="card" id="progress-card" hidden>
+  <h2>Progress <span id="state" class="state"></span></h2>
+  <div class="stats">
+    <div class="stat"><span>Pages fetched</span><b id="s-fetched">0</b></div>
+    <div class="stat"><span>Queued</span><b id="s-queued">0</b></div>
+    <div class="stat"><span>People found</span><b id="s-doctors">0</b></div>
+    <div class="stat"><span>Faculty</span><b id="s-onco">0</b></div>
+    <div class="stat"><span>Student offices</span><b id="s-offices">0</b></div>
+    <div class="stat"><span>Elapsed</span><b id="s-time">0s</b></div>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="log" id="log"></div>
+  <div class="row" id="downloads" hidden>
+    <button type="button" id="dl-xlsx">Download Excel</button>
+    <button type="button" class="secondary" id="dl-csv">CSV</button>
+    <button type="button" class="secondary" id="dl-json">JSON</button>
+    <span class="hint">While the crawl runs, these give what has been found so far.</span>
+  </div>
+  <p class="hint" id="error"></p>
+</section>
+
+<section class="card" id="results-card" hidden>
+  <h2>Results <span class="pill" id="count"></span><span class="source-label" id="results-from"></span></h2>
+  <input id="filter" placeholder="Filter by name, college, department or research area">
+  <div class="tablewrap" style="margin-top:10px"><table class="people"><colgroup><col style="width:13%"><col style="width:10%"><col style="width:9%"><col style="width:12%"><col style="width:8%"><col style="width:9%"><col style="width:10%"><col style="width:8%"><col style="width:9%"><col style="width:6%"><col style="width:5%"></colgroup>
+    <thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Email</th><th>Phone</th><th>Department / office contact</th><th>College</th><th>Qualifications</th><th>Research areas</th><th>Profiles</th><th>Source</th></tr></thead>
+    <tbody id="rows"></tbody></table></div>
+  <h2 style="margin-top:18px">Student offices <span class="pill" id="office-count"></span></h2>
+  <p class="hint" style="margin-top:0">Office contacts and faculty/staff coordinators. Lines about individual students are left out; the last column counts them.</p>
+  <div class="tablewrap" style="margin-top:8px;max-height:380px"><table class="offices"><colgroup><col style="width:11%"><col style="width:20%"><col style="width:18%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:6%"><col style="width:5%"></colgroup>
+    <thead><tr><th>Type</th><th>Office / body</th><th>Emails</th><th>Phones</th><th>Coordinators</th><th>Higher-studies figures</th><th>Student lines left out</th><th>Page</th></tr></thead>
+    <tbody id="office-rows"></tbody></table></div>
+</section>
+
+<section class="card">
+  <h2>Test one page</h2>
+  <p class="hint">Check what the extractor reads from a single URL before running a full crawl.</p>
+  <div class="row" style="margin-top:6px"><input id="page-url" placeholder="https://www.college.ac.in/faculty/dr-name" style="flex:1"><button id="page-btn" class="secondary">Test page</button></div>
+  <div class="summary" id="page-sum" hidden></div>
+  <details id="page-raw" hidden><summary>Show raw data</summary><pre class="json" id="page-out"></pre></details>
+</section>
+</div>
+
+<!-- 3. COLLEGE MANAGEMENT -->
+<div id="view-colleges" class="page view" hidden>
+<section class="card">
+  <h2>College Management <span class="pill" id="cm-count">0 colleges</span></h2>
+  <p class="hint" style="margin-top:0">Inspect all colleges in the platform database, view extracted faculty &amp; contact coverage, or trigger a fresh scrape on any college.</p>
+  <div class="grid">
+    <div style="grid-column:span 2"><label for="cm-q">Search college or URL</label><input id="cm-q" placeholder="College name, domain, note..."></div>
+    <div><label for="cm-status">Crawl Status</label><select id="cm-status"><option value="">All statuses</option><option value="done">Completed</option><option value="resumed">Resumed / Cached</option><option value="failed">Failed</option><option value="error">Error</option><option value="interrupted">Interrupted</option></select></div>
+    <div class="row" style="margin-top:0"><button type="button" id="cm-refresh" class="secondary">Refresh</button><button type="button" id="cm-clear" class="secondary">Clear filters</button></div>
+  </div>
+  <p class="msg" id="cm-msg" role="status"></p>
+  <div class="tablewrap" style="margin-top:12px">
+    <table class="colleges">
+      <colgroup><col style="width:24%"><col style="width:9%"><col style="width:7%"><col style="width:7%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:17%"><col style="width:12%"></colgroup>
+      <thead><tr><th>College</th><th>Status</th><th>Pages</th><th>Faculty</th><th>Own Email</th><th>Own Phone</th><th>Offices</th><th>Website / Note</th><th>Actions</th></tr></thead>
+      <tbody id="cm-rows"></tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<!-- 4. LIVE SCRAPING MONITOR -->
+<div id="view-monitor" class="page view" hidden>
+<section class="card">
+  <h2>Real-Time Background Process Monitor <span class="pill" id="m-state-pill">IDLE</span></h2>
+  <div class="row" style="margin-top:4px;margin-bottom:12px">
+    <button type="button" id="m-start-btn" onclick="location.hash='#new'">Start New Scraping</button>
+    <button type="button" class="secondary" id="m-pause-btn" disabled>Pause Scraping</button>
+    <button type="button" class="secondary" id="m-resume-btn" disabled>Resume Scraping</button>
+    <button type="button" class="danger" id="m-stop-btn" disabled>Stop Scraping</button>
+    <button type="button" class="secondary" id="m-retry-btn">Retry Failed Colleges</button>
+    <button type="button" class="secondary" id="m-export-btn" onclick="location.hash='#exports'">Export Excel</button>
+  </div>
+  <p class="msg" id="m-msg" role="status"></p>
+  <div class="bar"><i id="m-bar-fill"></i></div>
+  <div class="stats" id="m-kpis">
+    <div class="stat"><span>Total Colleges</span><b id="m-total-colleges">0</b></div>
+    <div class="stat"><span>Completed Colleges</span><b id="m-completed-colleges">0</b></div>
+    <div class="stat"><span>Running Colleges</span><b id="m-running-colleges">0</b></div>
+    <div class="stat"><span>Pending Colleges</span><b id="m-pending-colleges">0</b></div>
+    <div class="stat"><span>Failed Colleges</span><b id="m-failed-colleges">0</b></div>
+    <div class="stat"><span>Total URLs Discovered</span><b id="m-urls-discovered">0</b></div>
+    <div class="stat"><span>Total URLs Processed</span><b id="m-urls-processed">0</b></div>
+    <div class="stat"><span>Total Faculty Extracted</span><b id="m-total-faculty">0</b></div>
+    <div class="stat"><span>Valid Email Count</span><b id="m-valid-emails">0</b></div>
+    <div class="stat"><span>Valid Phone Count</span><b id="m-valid-phones">0</b></div>
+    <div class="stat"><span>Duplicates Removed</span><b id="m-duplicates">0</b></div>
+    <div class="stat"><span>Current Scraping Speed</span><b id="m-speed">0 <small>pages/min</small></b></div>
+    <div class="stat"><span>Avg Time / College</span><b id="m-avg-time">0s</b></div>
+    <div class="stat"><span>Overall Progress</span><b id="m-progress-pct">0%</b></div>
+    <div class="stat"><span>Estimated Remaining</span><b id="m-eta">—</b></div>
+  </div>
+</section>
+
+<div class="split-2">
+  <section class="card">
+    <h2>Currently Running Colleges <span class="pill" id="m-active-pill">0 active</span></h2>
+    <div class="tablewrap" style="max-height:320px">
+      <table>
+        <colgroup><col style="width:22%"><col style="width:20%"><col style="width:18%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:7%"><col style="width:7%"></colgroup>
+        <thead><tr><th>College Name</th><th>Current Website</th><th>Current Stage</th><th>Discovered</th><th>Processed</th><th>Faculty</th><th>Status</th><th>Duration</th></tr></thead>
+        <tbody id="m-running-rows"></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Live Activity Console</h2>
+    <div class="console-box" id="m-console">[System] Waiting for live telemetry...</div>
+  </section>
+</div>
+
+<section class="card">
+  <h2>All Colleges in Current / Latest Job</h2>
+  <div class="tablewrap" style="max-height:420px">
+    <table>
+      <colgroup><col style="width:5%"><col style="width:23%"><col style="width:18%"><col style="width:14%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>
+      <thead><tr><th>#</th><th>College Name</th><th>Website</th><th>Stage</th><th>Discovered</th><th>Processed</th><th>Faculty</th><th>Status</th><th>Duration</th></tr></thead>
+      <tbody id="m-all-rows"></tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<!-- 5. FACULTY RECORDS -->
+<div id="view-directory" class="page view" hidden>
+<section class="card">
+  <h2>Faculty Records <span class="pill" id="x-count"></span></h2>
+  <div class="grid filters">
+    <div style="grid-column:span 2"><label for="x-q">Search</label><input id="x-q" placeholder="Name, email, research area, anything"></div>
+    <div><label for="x-coll">College</label><select id="x-coll"><option value="">All colleges</option></select></div>
+    <div><label for="x-dept">Department</label><select id="x-dept"><option value="">All departments</option></select></div>
+    <div><label for="x-city">City</label><select id="x-city"><option value="">All cities</option></select></div>
+  </div>
+  <div class="row checks">
+    <label class="check"><input type="checkbox" id="x-email"> Has own email</label>
+    <label class="check"><input type="checkbox" id="x-phone"> Has own phone</label>
+    <label class="check"><input type="checkbox" id="x-contact"> Has any contact</label>
+    <label class="check"><input type="checkbox" id="x-profile"> Has Scholar / ORCID / Scopus</label>
+    <label class="check"><input type="checkbox" id="x-all"> Include non-teaching staff</label>
+  </div>
+  <div class="row"><button type="button" id="x-xlsx">Export Excel</button><button type="button" class="secondary" id="x-csv">CSV</button>
+    <button type="button" class="secondary" id="x-reset">Clear filters</button><span class="hint">Exports use the filters above.</span></div>
+  <p class="msg" id="x-msg" role="status"></p>
+  <div class="tablewrap" style="margin-top:10px"><table class="people"><colgroup><col style="width:13%"><col style="width:10%"><col style="width:9%"><col style="width:12%"><col style="width:8%"><col style="width:9%"><col style="width:10%"><col style="width:8%"><col style="width:9%"><col style="width:6%"><col style="width:5%"></colgroup>
+    <thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Email</th><th>Phone</th><th>Department / office contact</th><th>College</th><th>Qualifications</th><th>Research areas</th><th>Profiles</th><th>Source</th></tr></thead>
+    <tbody id="x-rows"></tbody></table></div>
+  <div class="row"><button type="button" class="secondary" id="x-prev">Previous</button><span class="hint" id="x-page"></span><button type="button" class="secondary" id="x-next">Next</button></div>
+</section>
+</div>
+
+<!-- 6. URL DISCOVERY -->
+<div id="view-urls" class="page view" hidden>
+<section class="card">
+  <h2>Internal URL &amp; Faculty Directory Discovery <span class="pill" id="u-count">0 URLs</span></h2>
+  <p class="hint" style="margin-top:0">Explore discovered faculty pages, staff directories, department listings, and individual academic profiles.</p>
+  <div class="row">
+    <input id="u-q" placeholder="Filter by URL, college name, or page type (listing / profile)..." style="flex:1">
+    <button type="button" class="secondary" id="u-refresh">Refresh URLs</button>
+    <button type="button" class="secondary" id="u-clear">Clear filter</button>
+  </div>
+  <div class="tablewrap" style="margin-top:12px">
+    <table>
+      <colgroup><col style="width:42%"><col style="width:12%"><col style="width:10%"><col style="width:10%"><col style="width:26%"></colgroup>
+      <thead><tr><th>Discovered URL</th><th>Page Type</th><th>HTTP Status</th><th>Records Found</th><th>College / Institution</th></tr></thead>
+      <tbody id="u-rows"></tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<!-- 7. FAILED WEBSITES -->
+<div id="view-failed" class="page view" hidden>
+<section class="card">
+  <h2>Failed &amp; Interrupted Websites Recovery Center <span class="pill" id="fw-count">0 failed</span></h2>
+  <p class="hint" style="margin-top:0">Diagnose websites that timed out, blocked requests, or stopped early, and retry them independently without re-scraping completed colleges.</p>
+  <div class="row">
+    <button type="button" id="fw-retry-all">Retry Failed Colleges</button>
+    <button type="button" class="secondary" id="fw-refresh">Refresh List</button>
+  </div>
+  <p class="msg" id="fw-msg" role="status"></p>
+  <div class="tablewrap" style="margin-top:12px">
+    <table>
+      <colgroup><col style="width:22%"><col style="width:10%"><col style="width:7%"><col style="width:7%"><col style="width:22%"><col style="width:20%"><col style="width:12%"></colgroup>
+      <thead><tr><th>College</th><th>Status</th><th>Pages</th><th>Faculty</th><th>Start URL</th><th>Diagnostic Note</th><th>Actions</th></tr></thead>
+      <tbody id="fw-rows"></tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<!-- 8. EXCEL EXPORT CENTER -->
+<div id="view-exports" class="page view" hidden>
+<section class="card">
+  <h2>High-Speed Excel Export Center &amp; Quality Auditor</h2>
+  <p class="hint" style="margin-top:0">Generate full Master Excel workbooks or filtered State/College/Run workbooks asynchronously in the background. Preserves the exact 7-sheet template structure.</p>
+  <div class="grid">
+    <div><label for="ex-scope">Export Scope</label><select id="ex-scope"><option value="master">Full Master Export (All Colleges)</option><option value="state">State-wise Export</option><option value="college">Single College Export</option><option value="department">Department Export</option></select></div>
+    <div><label for="ex-state">State (for State-wise)</label><select id="ex-state"><option value="">All States</option></select></div>
+    <div><label for="ex-college">College</label><select id="ex-college"><option value="">All Colleges</option></select></div>
+    <div><label for="ex-dept">Department</label><select id="ex-dept"><option value="">All Departments</option></select></div>
+  </div>
+  <div class="row checks">
+    <label class="check"><input type="checkbox" id="ex-email"> Only with valid email</label>
+    <label class="check"><input type="checkbox" id="ex-phone"> Only with valid phone</label>
+    <label class="check"><input type="checkbox" id="ex-all"> Include non-teaching staff in Faculty filter</label>
+  </div>
+  <div class="row">
+    <button type="button" id="ex-start-btn">Generate Excel in Background</button>
+    <button type="button" class="secondary" id="ex-direct-btn">Instant Direct Download (.xlsx)</button>
+    <button type="button" class="secondary" id="ex-quality-btn">Run Pre-Export Quality Audit</button>
+    <button type="button" class="secondary" id="ex-clear-btn">Clear Filters</button>
+  </div>
+  <p class="msg" id="ex-msg" role="status"></p>
+</section>
+
+<section class="card" id="ex-quality-card">
+  <h2>Data Quality &amp; Confidence Summary <span class="pill" id="q-index-pill">Auditing...</span></h2>
+  <div class="stats" id="q-stats"></div>
+  <div class="tablewrap" style="margin-top:12px;max-height:260px">
+    <table>
+      <colgroup><col style="width:22%"><col style="width:24%"><col style="width:10%"><col style="width:24%"><col style="width:20%"></colgroup>
+      <thead><tr><th>Record Name</th><th>College</th><th>Confidence</th><th>Validation Flags</th><th>Source URL</th></tr></thead>
+      <tbody id="q-flagged-rows"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Background Excel Export Jobs</h2>
+  <div class="tablewrap">
+    <table>
+      <colgroup><col style="width:14%"><col style="width:22%"><col style="width:12%"><col style="width:18%"><col style="width:10%"><col style="width:10%"><col style="width:14%"></colgroup>
+      <thead><tr><th>Started</th><th>Export Job</th><th>Status</th><th>Current Stage</th><th>Records</th><th>Gen Time</th><th>Actions</th></tr></thead>
+      <tbody id="ex-job-rows"></tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<!-- 9. SCRAPING HISTORY -->
+<div id="view-runs" class="page view" hidden>
+<section class="card">
+  <h2>All Scraping Runs &amp; Recovery History</h2>
+  <p class="hint" style="margin-top:0">Every crawl and batch is kept here. A batch cut off when the app closed can be resumed; finished colleges are not crawled again.</p>
+  <p class="msg" id="r-msg" role="status"></p>
+  <div class="tablewrap"><table class="runs"><colgroup><col style="width:13%"><col style="width:8%"><col style="width:24%"><col style="width:15%"><col style="width:7%"><col style="width:6%"><col style="width:6%"><col style="width:21%"></colgroup><thead><tr><th class="nowrap">Started</th><th>Type</th><th>Run</th><th>Status</th><th>Duration</th><th>Faculty</th><th>Offices</th><th>Actions</th></tr></thead><tbody id="r-rows"></tbody></table></div>
+</section>
+</div>
+
+<!-- 10. SETTINGS -->
+<div id="view-settings" class="page view" hidden>
+<section class="card">
+  <h2>Engine &amp; Concurrency Settings</h2>
+  <p class="hint" style="margin-top:0">Configure default worker pools, domain pacing, timeouts, and adaptive resource throttling.</p>
+  <div class="grid">
+    <div><label for="st-workers">Workers per college (1–32)</label><input id="st-workers" type="number" value="4" min="1" max="32"></div>
+    <div><label for="st-colleges">Concurrent colleges (1–32)</label><input id="st-colleges" type="number" value="4" min="1" max="32"></div>
+    <div><label for="st-pages">Default max pages (single site)</label><input id="st-pages" type="number" value="200" min="1" max="20000"></div>
+    <div><label for="st-batch-pages">Default pages per college (batch)</label><input id="st-batch-pages" type="number" value="150" min="1" max="5000"></div>
+    <div><label for="st-depth">Max link depth</label><input id="st-depth" type="number" value="4" min="0" max="10"></div>
+    <div><label for="st-delay">Domain delay (seconds)</label><input id="st-delay" type="number" value="1.5" step="0.25" min="0" max="30"></div>
+    <div><label for="st-timeout">HTTP timeout (seconds)</label><input id="st-timeout" type="number" value="25" min="5" max="120"></div>
+    <div><label for="st-patience">Patience limit (pages without new faculty)</label><input id="st-patience" type="number" value="80" min="0" max="5000"></div>
+    <div><label for="st-render">Browser rendering mode</label><select id="st-render"><option value="auto">Auto (Playwright only when needed)</option><option value="never">Never (Lightweight HTTP only)</option><option value="always">Always</option></select></div>
+  </div>
+  <div class="row checks">
+    <label class="check"><input type="checkbox" id="st-adaptive" checked> Adaptive resource throttling (auto-adjust workers under high CPU/RAM load)</label>
+    <label class="check"><input type="checkbox" id="st-sitemaps" checked> Discover URLs via sitemap.xml</label>
+    <label class="check"><input type="checkbox" id="st-subdomains"> Include official college subdomains</label>
+    <label class="check"><input type="checkbox" id="st-offices" checked> Extract student offices &amp; placement cells</label>
+  </div>
+  <div class="row">
+    <button type="button" id="st-save">Save &amp; Apply Settings</button>
+    <button type="button" class="secondary" id="st-reset">Restore Defaults</button>
+  </div>
+  <p class="msg" id="st-msg" role="status"></p>
+</section>
+</div>
+
+<!-- 11. SYSTEM PERFORMANCE -->
+<div id="view-performance" class="page view" hidden>
+<section class="card">
+  <h2>System Resource &amp; Concurrency Telemetry <span class="pill" id="perf-status-pill">Optimal</span></h2>
+  <p class="hint" style="margin-top:0">Live Windows hardware telemetry, process memory footprint, network request throughput, and adaptive worker recommendations.</p>
+  <div class="stats" id="perf-stats">
+    <div class="stat"><span>CPU Utilization</span><b id="pf-cpu">0%</b><div class="gauge-bar"><i id="pf-cpu-bar" style="width:0%"></i></div></div>
+    <div class="stat"><span>System RAM Usage</span><b id="pf-ram">0%</b><div class="gauge-bar"><i id="pf-ram-bar" style="width:0%"></i></div></div>
+    <div class="stat"><span>Available RAM</span><b id="pf-ram-avail">0 MB</b></div>
+    <div class="stat"><span>Scraper Process RAM</span><b id="pf-proc-ram">0 MB</b></div>
+    <div class="stat"><span>Active Worker Threads</span><b id="pf-workers">0</b></div>
+    <div class="stat"><span>Active Colleges</span><b id="pf-colleges">0</b></div>
+    <div class="stat"><span>Browser Instances</span><b id="pf-browsers">0</b></div>
+    <div class="stat"><span>Network Throughput</span><b id="pf-net-rate">0 req/min</b></div>
+    <div class="stat"><span>Total HTTP Requests</span><b id="pf-net-total">0</b></div>
+    <div class="stat"><span>Data Downloaded</span><b id="pf-net-mb">0 MB</b></div>
+    <div class="stat"><span>Recommended Workers</span><b id="pf-rec-workers">8</b></div>
+    <div class="stat"><span>Database Size</span><b id="pf-db-size">0 MB</b></div>
+  </div>
+</section>
+<section class="card">
+  <h2>Recent Resource Telemetry Log</h2>
+  <div class="tablewrap" style="max-height:360px">
+    <table>
+      <colgroup><col style="width:16%"><col style="width:12%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:16%"></colgroup>
+      <thead><tr><th>Time</th><th>CPU %</th><th>System RAM %</th><th>Process RAM</th><th>Active Workers</th><th>Req / Min</th><th>Adaptive Status</th></tr></thead>
+      <tbody id="pf-history-rows"></tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<!-- STUDENT OFFICES -->
+<div id="view-offices" class="page view" hidden>
+<section class="card">
+  <h2>Student offices <span class="pill" id="o-count"></span></h2>
+  <p class="hint" style="margin-top:0">Placement cells, higher-studies cells, student chapters, alumni and international offices across all runs. Office contacts and faculty/staff coordinators only.</p>
+  <div class="grid filters">
+    <div style="grid-column:span 2"><label for="o-q">Search</label><input id="o-q" placeholder="Office, coordinator, email, anything"></div>
+    <div><label for="o-coll">College</label><select id="o-coll"><option value="">All colleges</option></select></div>
+    <div><label for="o-type">Office type</label><select id="o-type"><option value="">All types</option></select></div>
+  </div>
+  <div class="row checks">
+    <label class="check"><input type="checkbox" id="o-email"> Has email</label>
+    <label class="check"><input type="checkbox" id="o-phone"> Has phone</label>
+    <label class="check"><input type="checkbox" id="o-figures"> Publishes higher-studies figures</label>
+  </div>
+  <div class="row"><button type="button" id="o-xlsx">Export Excel</button><button type="button" class="secondary" id="o-csv">CSV</button>
+    <button type="button" class="secondary" id="o-reset">Clear filters</button></div>
+  <p class="msg" id="o-msg" role="status"></p>
+  <div class="tablewrap" style="margin-top:10px"><table class="offices"><colgroup><col style="width:10%"><col style="width:17%"><col style="width:15%"><col style="width:16%"><col style="width:13%"><col style="width:13%"><col style="width:11%"><col style="width:5%"></colgroup>
+    <thead><tr><th>Type</th><th>Office / body</th><th>College</th><th>Emails</th><th>Phones</th><th>Coordinators</th><th>Higher-studies figures</th><th>Page</th></tr></thead>
+    <tbody id="o-rows"></tbody></table></div>
+</section>
+</div>
+
+</main>
+<script src="/static/app.js"></script>
+<script src="/static/portal.js"></script>
+<script src="/static/prompt.js"></script>
+</body>
+</html>

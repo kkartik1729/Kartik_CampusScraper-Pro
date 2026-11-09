@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.pyc
+results/
+*.xlsx
+!campus_sources/*.xlsx
+html_dump/
+.pytest_cache/
+tests_campus/site/
+*_sites/
+.env
+.env.*
+!.env.example
+searxng/settings.yml
+searxng/data/
+searxng/settings.yml.*
+
+# Local model evaluation reports
+outputs/ollama-evaluation.json

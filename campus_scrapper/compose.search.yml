@@ -1,0 +1,16 @@
+services:
+  searxng:
+    image: ${SEARXNG_IMAGE:-docker.io/searxng/searxng:latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+      - ./searxng/data:/var/cache/searxng
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"

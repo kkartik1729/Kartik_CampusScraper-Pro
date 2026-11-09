@@ -1,0 +1,41 @@
+College Name,Official Website,Faculty Page URLs,Department URLs,Student Office URLs,Sample Faculty Profile URL,Profile URL Pattern,Departments,City,State,College Type,Max Pages,Include Subdomains,Use Browser,Enabled,Notes
+Army Institute of Technology (AIT),https://www.aitpune.com/,,,,,,,Pune,Maharashtra,,300,no,auto,yes,Dighi. UNRESOLVED: official site returned timeout/503. No current official faculty directory verified. Historical 2020-21 IT faculty PDF found but excluded to avoid stale data. Homepage discovery remains enabled.
+MIT World Peace University - Engineering,https://mitwpu.edu.in/,https://mitwpu.edu.in/faculty/showFacultyDataAjax?school_id=1&page=0 https://mitwpu.edu.in/faculty/showFacultyDataAjax?school_id=2&page=0,https://mitwpu.edu.in/schools/faculty-of-engineering-and-technology/school-of-engineering-and-technology,,,,"Engineering, Computer Science, Information Technology, Artificial Intelligence, Data Science, Robotics, Automation",Pune,Maharashtra,,600,no,auto,yes,Kothrud. Official university-wide faculty directory uses JavaScript and Load More. Engineering-related department filter set for Faculty output; other output sheets may contain other departments. Full browser interaction not tested.
+MIT ADT University - School of Engineering and Sciences,https://mituniversity.ac.in/,https://mituniversity.ac.in/academics/faculty/faculty-of-engineering/MIT-School-of-Engineering-and-Sciences,,,,,"Engineering, Computer Science, Information Technology, Artificial Intelligence, Data Science, Robotics, Automation",Pune,Maharashtra,,300,no,auto,yes,Loni Kalbhor. Engineering school faculty seed; review department scope before running. | Faculty URL research: 24 Oct 2026. Seeds are not a complete faculty census.
+Sinhgad College of Engineering (SCOE),https://scoe.sinhgad.edu/,"https://cms.sinhgad.edu/sinhgad_engineering_institutes/vadgaon_scoe/departments/computer/faculty.aspx
+https://cms.sinhgad.edu/sinhgad_engineering_institutes/vadgaon_scoe/departments/entc/faculty_list.aspx
+https://cms.sinhgad.edu/sinhgad_engineering_institutes/vadgaon_scoe/departments/engineering_sciences/faculty.aspx
+https://cms.sinhgad.edu/sinhgad_engineering_institutes/vadgaon_scoe/departments/chemical_engineering/faculty.aspx
+https://cms.sinhgad.edu/sinhgad_engineering_institutes/vadgaon_scoe/departments/bio_technology/faculty.aspx",,,,,,Pune,Maharashtra,,300,no,auto,yes,Vadgaon Budruk | Faculty URL research: 24 Oct 2026. Seeds are not a complete faculty census.
+Smt. Kashibai Navale College of Engineering (SKNCOE),https://skncoe.sinhgad.edu/,https://cms.sinhgad.edu/sinhgad_engineering_institutes/skncoe_vadgaon/departments/computer/faculty.aspx https://cms.sinhgad.edu/sinhgad_engineering_institutes/skncoe_vadgaon/departments/entc/faculty.aspx https://cms.sinhgad.edu/sinhgad_engineering_institutes/skncoe_vadgaon/departments/fe/faculty.aspx,,,,,,Pune,Maharashtra,,300,no,auto,yes,Vadgaon Budruk | Faculty URL research: 24 Oct 2026. Seeds are not a complete faculty census.
+Dr. D. Y. Patil Institute of Technology,https://engg.dypvp.edu.in/,"https://engg.dypvp.edu.in/computer-engineering-faculty-and-staff.aspx
+https://engg.dypvp.edu.in/civil-engineering-faculty-and-staff.aspx
+https://engg.dypvp.edu.in/it-faculty-and-staff.aspx
+https://engg.dypvp.edu.in/artificial-intelligence-and-data-science-faculty-and-staff.aspx
+https://engg.dypvp.edu.in/electrical-engineering-faculty-and-staff.aspx
+https://engg.dypvp.edu.in/automation-and-robotics-faculty.aspx
+https://engg.dypvp.edu.in/FE-faculty-and-staff.aspx",,,,,,Pune,Maharashtra,,300,no,auto,yes,Pimpri | Faculty URL research: 24 Oct 2026. Seeds are not a complete faculty census.
+JSPM's Rajarshi Shahu College of Engineering (RSCOE),https://www.jspmrscoe.edu.in/,"https://www.jspmrscoe.edu.in/ComputerEngineering/faculty-list
+https://www.jspmrscoe.edu.in/eandtc-engineering/facultyList
+https://www.jspmrscoe.edu.in/civil-engineering/faculty-list
+https://jspmrscoe.edu.in/engineeringsciences-and-humanities/faculty-list
+https://www.jspmrscoe.edu.in/electrical-engineering/faculty-list
+https://www.jspmrscoe.edu.in/information-technology/faculty-list
+https://www.jspmrscoe.edu.in/mechanical-engineering/faculty-list https://www.jspmrscoe.edu.in/dca/contact-us",,,,,,Pune,Maharashtra,,300,no,auto,yes,Tathawade | Faculty URL research: 24 Oct 2026. Seeds are not a complete faculty census.
+JSPM's Jayawantrao Sawant College of Engineering (JSCOE),https://www.jspmjscoe.edu.in/,"https://jspmjscoe.edu.in/faculty_profile/teaching
+https://jspmjscoe.edu.in/academics/electronics_and_telecommunication/409/faculty_details
+https://jspmjscoe.edu.in/academics/mechanical_engineering/99/faculty_details
+https://jspmjscoe.edu.in/academics/computer_engineering/20/faculty_details","https://jspmjscoe.edu.in/academics/best-computer-engineering-colleges-in-pune
+https://jspmjscoe.edu.in/academics/best-electrical-engineering-colleges-in-pune
+https://jspmjscoe.edu.in/academics/best-electronics-and-telecommunication-engineering-colleges-in-pune
+https://jspmjscoe.edu.in/academics/best-information-technology-engineering-colleges-in-pune
+https://jspmjscoe.edu.in/academics/best-mechanical-engineering-colleges-in-pune
+https://jspmjscoe.edu.in/academics/engineering_science",,https://jspmjscoe.edu.in/academics/computer_engineering/20/faculty_details,,,Pune,Maharashtra,,300,no,auto,yes,Hadapsar. Teaching directory links to an Excel download; department pages and sample HTML profiles added as additional seeds. Not a complete list of profile URLs.
+Zeal College of Engineering and Research,https://zcoer.in/,"https://zcoer.in/faculty-profile-aids/
+https://zcoer.in/faculty-profile-computer/
+https://zcoer.in/faculty-profile-fe/
+https://zcoer.in/faculty-profile-me3/
+https://zcoer.in/faculty-profile-it/
+https://zcoer.in/faculty-profile-main-etc/
+https://zcoer.in/faculty-profile-me2/",,,,,,Pune,Maharashtra,,300,no,auto,yes,Narhe | Faculty URL research: 24 Oct 2026. Seeds are not a complete faculty census.
+Trinity College of Engineering and Research,https://www.trinity-autonomous.in/,https://www.trinity-autonomous.in/index.php?%2FComputerEngineering=,,,,,,Pune,Maharashtra,,300,no,auto,yes,Yewalewadi-Pisoli. Official Computer Engineering page has an indexed Faculty section; live retrieval timed out/503 on 24 Oct 2026. Other departments not verified. Legacy kjei.edu.in/tcoer/our_faculty.php returned 404 and was excluded.
